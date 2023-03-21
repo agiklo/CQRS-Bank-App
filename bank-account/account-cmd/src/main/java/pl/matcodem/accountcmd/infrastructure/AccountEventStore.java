@@ -9,6 +9,7 @@ import pl.matcodem.cqrscore.events.EventModel;
 import pl.matcodem.cqrscore.exceptions.ConcurrencyException;
 import pl.matcodem.cqrscore.exceptions.AggregateNotFoundException;
 import pl.matcodem.cqrscore.infrastructure.EventStore;
+import pl.matcodem.cqrscore.producers.EventProducer;
 
 import java.util.List;
 
@@ -19,6 +20,7 @@ import static java.time.LocalDateTime.now;
 public class AccountEventStore implements EventStore {
 
     private final EventStoreRepository eventStoreRepository;
+    private final EventProducer eventProducer;
 
     @Override
     public void saveEvents(String aggregateId, Iterable<BaseEvent> events, int expectedVersion) {
@@ -39,8 +41,8 @@ public class AccountEventStore implements EventStore {
                     .eventData(event)
                     .build();
             var persistedEvent = eventStoreRepository.save(eventModel);
-            if (persistedEvent != null) {
-                //TODO: produce event to kafka
+            if (!persistedEvent.getId().isEmpty()) {
+                eventProducer.produce(event.getClass().getSimpleName(), event);
             }
         }
     }
