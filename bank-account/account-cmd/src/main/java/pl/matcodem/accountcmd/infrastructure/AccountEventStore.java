@@ -6,8 +6,8 @@ import pl.matcodem.accountcmd.domain.AccountAggregate;
 import pl.matcodem.accountcmd.domain.EventStoreRepository;
 import pl.matcodem.cqrscore.events.BaseEvent;
 import pl.matcodem.cqrscore.events.EventModel;
-import pl.matcodem.cqrscore.exceptions.ConcurrencyException;
 import pl.matcodem.cqrscore.exceptions.AggregateNotFoundException;
+import pl.matcodem.cqrscore.exceptions.ConcurrencyException;
 import pl.matcodem.cqrscore.infrastructure.EventStore;
 import pl.matcodem.cqrscore.producers.EventProducer;
 
@@ -54,5 +54,17 @@ public class AccountEventStore implements EventStore {
             throw new AggregateNotFoundException("Wrong account id provided!");
         }
         return eventStream.stream().map(EventModel::getEventData).toList();
+    }
+
+    @Override
+    public List<String> getAggregateIds() {
+        var events = eventStoreRepository.findAll();
+        if (events.isEmpty()) {
+            throw new IllegalStateException("Could not retrieve events from the event store.");
+        }
+        return events.stream()
+                .map(EventModel::getAggregateIdentifier)
+                .distinct()
+                .toList();
     }
 }

@@ -7,6 +7,7 @@ import pl.matcodem.cqrscore.domain.AggregateRoot;
 import pl.matcodem.cqrscore.events.BaseEvent;
 import pl.matcodem.cqrscore.handlers.EventSourcingHandler;
 import pl.matcodem.cqrscore.infrastructure.EventStore;
+import pl.matcodem.cqrscore.producers.EventProducer;
 
 import java.util.Comparator;
 import java.util.Optional;
@@ -16,6 +17,7 @@ import java.util.Optional;
 public class AccountEventSourcingHandler implements EventSourcingHandler<AccountAggregate> {
 
     private final EventStore eventStore;
+    private final EventProducer eventProducer;
 
     @Override
     public void save(AggregateRoot aggregate) {
@@ -35,5 +37,16 @@ public class AccountEventSourcingHandler implements EventSourcingHandler<Account
             latestVersion.ifPresent(aggregate::setVersion);
         }
         return aggregate;
+    }
+
+    @Override
+    public void republishEvents() {
+        var aggregateIds = eventStore.getAggregateIds();
+        aggregateIds.forEach(aggregateId -> {
+            var aggregate = getById(aggregateId);
+            if (aggregate == null || !aggregate.isActive()) return;
+            var events = eventStore.getEvents(aggregateId);
+            events.forEach(event -> eventProducer.produce(event.getClass().getSimpleName(), event));
+        });
     }
 }

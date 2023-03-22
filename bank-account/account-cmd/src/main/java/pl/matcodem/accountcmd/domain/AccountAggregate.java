@@ -86,4 +86,8 @@ public class AccountAggregate extends AggregateRoot {
     public BigDecimal getBalance() {
         return balance;
     }
+
+    public boolean isActive() {
+        return isActive;
+    }
 }
